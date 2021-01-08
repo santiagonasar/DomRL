@@ -1,7 +1,7 @@
 from domrl.engine.game import Game
 from domrl.engine.agent import StdinAgent
-from domrl.engine.agent import APIAgent
-from domrl.engine.agent import RandomAgent, PassOnBuySemiAgent, CleverSemiAgent, BigMoneySemiAgent, ApplySemiAgent, RulesSemiAgent, SmithySemiAgent, MyHeuristicSemiAgent, MarketSemiAgent, ChapelSemiAgent, AggressiveChapelSemiAgent, ProvinceSemiAgent, ProvinceNeverLoseSemiAgent, OnlyBuyCopperIfSemiAgent, DontBuyCopperOrEstateSemiAgent, MarketNoSmithySemiAgent, MarketNoSmithySemiAgent2, CustomHeuristicsSemiAgent
+from domrl.agents.my_agents import RandomAgent, PassOnBuySemiAgent, CleverSemiAgent, BigMoneySemiAgent, ApplySemiAgent, RulesSemiAgent, SmithySemiAgent, MyHeuristicSemiAgent, MarketSemiAgent, ChapelSemiAgent, AggressiveChapelSemiAgent, ProvinceSemiAgent, ProvinceNeverLoseSemiAgent, OnlyBuyCopperIfSemiAgent, DontBuyCopperOrEstateSemiAgent, MarketNoSmithySemiAgent, MarketNoSmithySemiAgent2, CustomHeuristicsSemiAgent
+from domrl.agents.big_money_agent import BigMoneyAgent
 
 """
 Run instances of the game.
@@ -10,6 +10,8 @@ Run instances of the game.
 if __name__ == '__main__':
     player_agent = ApplySemiAgent([RulesSemiAgent(), CleverSemiAgent()], StdinAgent())
     auto_player_agent = ApplySemiAgent([RulesSemiAgent(), CleverSemiAgent(), DontBuyCopperOrEstateSemiAgent(),
+                                        ProvinceNeverLoseSemiAgent()], StdinAgent())
+    auto_player_chapel_agent = ApplySemiAgent([RulesSemiAgent(), CleverSemiAgent(), DontBuyCopperOrEstateSemiAgent(),
                                         ProvinceNeverLoseSemiAgent(), AggressiveChapelSemiAgent()], StdinAgent())
     market_no_buys = ApplySemiAgent(
         [RulesSemiAgent(), CleverSemiAgent(), DontBuyCopperOrEstateSemiAgent(), ProvinceNeverLoseSemiAgent(),
@@ -48,15 +50,17 @@ if __name__ == '__main__':
     agents = [ApplySemiAgent(
         [RulesSemiAgent(), CleverSemiAgent(), DontBuyCopperOrEstateSemiAgent(), ProvinceNeverLoseSemiAgent(), SmithySemiAgent(),
          CustomHeuristicsSemiAgent({'Market': 1, 'Militia': 0.001, 'Smithy': 0.001, 'Village': 0.2}), PassOnBuySemiAgent()], RandomAgent())]
-    opponent = market_no_smithy
+    #opponent = market_no_smithy
     #opponent = auto_player_agent
+    agents = [auto_player_agent]
+    opponent = smithy_agent
     teksts = []
     for agent in agents:
         p1vs = 0
         p2vs = 0
         draws = 0
         fails = 0
-        rounds = 100
+        rounds = 1
         for idx in range(0, rounds):
             if idx < rounds / 2:
                 game = Game([agent, opponent])

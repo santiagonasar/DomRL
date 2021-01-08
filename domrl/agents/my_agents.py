@@ -2,8 +2,9 @@ import string
 
 import numpy
 import copy
+from domrl.engine.agent import Agent
 
-
+"""
 class Agent(object):
     def choose(self, decision, state):
         return decision.moves[0]
@@ -69,11 +70,11 @@ class APIAgent(Agent):
 
                 break
         return ans
-
+"""
 
 class RandomAgent(Agent):
 
-    def choose(self, decision, state):
+    def policy(self, decision, state):
         if 'Trash up to 4' in decision.prompt:  # for chapel
             my_list = []
             range_max = numpy.random.randint(0, min(len(decision.moves), 4) + 1, 1, int)
@@ -105,7 +106,7 @@ class RandomAgent(Agent):
 
 class PassOnBuySemiAgent(Agent):
 
-    def choose(self, decision, state):
+    def policy(self, decision, state):
         if 'Buy' in decision.prompt:
             return [0]
 
@@ -115,7 +116,7 @@ class CleverAgentOld(Agent):
     def __init__(self, agent):
         self.agent = agent
 
-    def choose(self, decision, state):
+    def policy(self, decision, state):
         initialDecision = copy.deepcopy(decision)
 
         # Automove If One Move
@@ -130,7 +131,7 @@ class CleverAgentOld(Agent):
                     move.card.add_actions > 0 or ("treasure" in decision.prompt.lower() and move.card.coins > 0)):
                 return self.restrictDecision(decision.moves, initialDecision.moves, idx)
 
-        restrictedChoice = self.agent.choose(self, decision, state)
+        restrictedChoice = self.agent.policy(decision, state)
         return self.restrictDecision(decision.moves, initialDecision.moves, restrictedChoice[0])
 
     def restrictDecision(self, moves, initialMoves, chosen):
@@ -142,7 +143,7 @@ class CleverAgentOld(Agent):
 
 
 class RulesSemiAgent(Agent):
-    def choose(self, decision, state):
+    def policy(self, decision, state):
         # Automove If One Move
         if len(decision.moves) == 1:
             return [0]
@@ -162,7 +163,7 @@ class RulesSemiAgent(Agent):
 
 class CleverSemiAgent(Agent):
 
-    def choose(self, decision, state):
+    def policy(self, decision, state):
         # Automove If One Move
         if len(decision.moves) == 1:
             return [0]
@@ -185,17 +186,17 @@ class ApplySemiAgent(Agent):
         self.semiAgents = semiAgents
         self.agent = agent
 
-    def choose(self, decision, state):
+    def policy(self, decision, state):
         for semiAgent in self.semiAgents:
-            value = semiAgent.choose(decision, state)
+            value = semiAgent.policy(decision, state)
             if value is not None:
                 return value
 
-        return self.agent.choose(self.agent, decision, state)
+        return self.agent.policy(decision, state)
 
 
 class BigMoneySemiAgent(Agent):
-    def choose(self, decision, state):
+    def policy(self, decision, state):
         for stringDesired in ["Buy: Province", "Buy: Gold", "Buy: Silver"]:
             for idx in range(0, len(decision.moves)):
                 try:
@@ -208,7 +209,7 @@ class BigMoneySemiAgent(Agent):
 
 
 class SmithySemiAgent(Agent):
-    def choose(self, decision, state):
+    def policy(self, decision, state):
         for stringDesired in ["Play: Smithy"]:
             for idx in range(0, len(decision.moves)):
                 try:
@@ -233,7 +234,7 @@ class SmithySemiAgent(Agent):
 
 class DontBuyCopperOrEstateSemiAgent(Agent):
 
-    def choose(self, decision, state):
+    def policy(self, decision, state):
         for idx in range(0, len(decision.moves)):
             try:
                 move = decision.moves[idx]
@@ -245,7 +246,7 @@ class DontBuyCopperOrEstateSemiAgent(Agent):
 
 
 class MyHeuristicSemiAgent(Agent):
-    def choose(self, decision, state):
+    def policy(self, decision, state):
         for stringDesired in []:
             for idx in range(0, len(decision.moves)):
                 try:
@@ -287,7 +288,7 @@ class MyHeuristicSemiAgent(Agent):
 
 
 class MarketSemiAgent(Agent):
-    def choose(self, decision, state):
+    def policy(self, decision, state):
 
         if 'Action' in decision.prompt:
             for stringDesired in ['Empty']:
@@ -326,9 +327,9 @@ class MarketSemiAgent(Agent):
 
 class CustomHeuristicsSemiAgent(Agent):
     def __init__(self, desired_decks):
-        self.desired_decks = desired_decks
+        self.desired_deck = desired_decks
 
-    def choose(self, decision, state):
+    def policy(self, decision, state):
 
         if 'Action' in decision.prompt:
             for stringDesired in ['Empty']:
@@ -364,7 +365,7 @@ class CustomHeuristicsSemiAgent(Agent):
 
 
 class MarketNoSmithySemiAgent(Agent):
-    def choose(self, decision, state):
+    def policy(self, decision, state):
 
         if 'Action' in decision.prompt:
             for stringDesired in ['Empty']:
@@ -402,7 +403,7 @@ class MarketNoSmithySemiAgent(Agent):
 
 
 class MarketNoSmithySemiAgent2(Agent):
-    def choose(self, decision, state):
+    def policy(self, decision, state):
 
         if 'Action' in decision.prompt:
             for stringDesired in ['Empty']:
@@ -440,7 +441,7 @@ class MarketNoSmithySemiAgent2(Agent):
 
 
 class OnlyBuyCopperIfSemiAgent(Agent):
-    def choose(self, decision, state):
+    def policy(self, decision, state):
         for idx in range(0, len(decision.moves)):
             try:
                 move = decision.moves[idx]
@@ -456,7 +457,7 @@ class OnlyBuyCopperIfSemiAgent(Agent):
 
 class ChapelSemiAgent(Agent):
 
-    def choose(self, decision, state):
+    def policy(self, decision, state):
         if 'Action' in decision.prompt:
             for c in decision.player.hand:
                 if 'Estate' in str(c):
@@ -506,7 +507,7 @@ class ChapelSemiAgent(Agent):
 
 class AggressiveChapelSemiAgent(ChapelSemiAgent):
 
-    def choose(self, decision, state):
+    def policy(self, decision, state):
         if 'Action' in decision.prompt:
             for c in decision.player.hand:
                 if 'Estate' in str(c) or ('Copper' in str(c) and sum(c.coins for c in decision.player.all_cards) > 5):
@@ -557,7 +558,7 @@ class AggressiveChapelSemiAgent(ChapelSemiAgent):
 
 
 class ProvinceSemiAgent(Agent):
-    def choose(self, decision, state):
+    def policy(self, decision, state):
         for stringDesired in ["Buy: Province"]:
             for idx in range(0, len(decision.moves)):
                 try:
@@ -570,11 +571,11 @@ class ProvinceSemiAgent(Agent):
 
 
 class ProvinceNeverLoseSemiAgent(Agent):
-    def choose(self, decision, state):
+    def policy(self, decision, state):
         desired_strings = ["Buy: Province"]
         if (state.supply_piles['Province'].qty == 1 and
                 (6 + decision.player.total_vp() <
-                 max(state.all_players, key=lambda pr: pr.total_vp()).total_vp())):
+                 max(state.other_players, key=lambda pr: pr.total_vp()).total_vp())):
             desired_strings = ["Buy: Duchy"]
 
         for stringDesired in desired_strings:
