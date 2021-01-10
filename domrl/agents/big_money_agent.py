@@ -20,8 +20,13 @@ def find_card_in_decision(decision, card_name):
 
 
 def get_minimum_coin_card(decision):
-    card_coins = [c.coins for c in decision.moves.card]
-    return [np.argmin(card_coins)]
+    card_coins = [m.card.coins for m in decision.moves]
+    to_return = []
+    for i in range(0, decision.num_select):
+        new = np.argmin(card_coins)
+        card_coins[new] = np.max(card_coins) + 1
+        to_return.append(new)
+    return to_return
 
 
 class BigMoneyAgent(Agent):

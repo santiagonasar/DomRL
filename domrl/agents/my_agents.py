@@ -1,15 +1,10 @@
-import string
-
 import numpy
 import copy
 from domrl.engine.agent import Agent
+from domrl.agents.layer_agent import DecisionLayersAgent
+from domrl.engine.util import TurnPhase, CardType
 
 """
-class Agent(object):
-    def choose(self, decision, state):
-        return decision.moves[0]
-
-
 class StdinAgent(Agent):
     def choose(self, decision, state):
 
@@ -42,37 +37,10 @@ class StdinAgent(Agent):
 
                 break
         return ans
-
-
-class APIAgent(Agent):
-
-    def choose(self, decision, state):
-
-        # Autoplay
-        # if len(decision.moves) == 1:
-        #     return [0]
-
-        player = decision.player
-        actions = player.actions
-        buys = player.buys
-        coins = player.coins
-        moves = decision.moves
-        hand = player.hand
-        state
-
-        while True:
-            user_input = input()
-            if user_input == "?":
-                state.event_log.print(player)
-                print(state)
-            else:
-                ans = list(map(lambda x: int(x.strip()), user_input.split(',')))
-
-                break
-        return ans
 """
 
-class RandomAgent(Agent):
+
+class OldRandomAgent(Agent):
 
     def policy(self, decision, state):
         if 'Trash up to 4' in decision.prompt:  # for chapel
@@ -107,7 +75,7 @@ class RandomAgent(Agent):
 class PassOnBuySemiAgent(Agent):
 
     def policy(self, decision, state):
-        if 'Buy' in decision.prompt:
+        if decision.player.phase == TurnPhase.BUY_PHASE:  #'Buy' in decision.prompt:
             return [0]
 
 
@@ -142,12 +110,16 @@ class CleverAgentOld(Agent):
         return [chosen]
 
 
-class RulesSemiAgent(Agent):
+class Autoplay(Agent):
     def policy(self, decision, state):
-        # Automove If One Move
         if len(decision.moves) == 1:
             return [0]
 
+        if len(decision.moves) == 0:
+            return []
+
+
+"""
         for idx in range(0, len(decision.moves)):
             try:
                 move = decision.moves[idx]
@@ -159,14 +131,12 @@ class RulesSemiAgent(Agent):
 
             if "Remodel" in str(move):  # currently does not work
                 decision.moves.pop(idx)
+"""
 
 
-class CleverSemiAgent(Agent):
+class PlayAllTreasure(Agent):
 
     def policy(self, decision, state):
-        # Automove If One Move
-        if len(decision.moves) == 1:
-            return [0]
 
         for idx in range(0, len(decision.moves)):
             try:
@@ -174,65 +144,55 @@ class CleverSemiAgent(Agent):
             except:
                 break
 
-            if "Buy: Curse" in move.__str__():
-                decision.moves.pop(idx)
-            if hasattr(move, "card") and (
-                    move.card.add_actions > 0 or ("treasure" in decision.prompt.lower() and move.card.coins > 0)):
+            if decision.player.phase == TurnPhase.TREASURE_PHASE and hasattr(move, "card") and \
+                    move.card.is_type(CardType.TREASURE):
                 return [idx]
 
 
-class ApplySemiAgent(Agent):
-    def __init__(self, semiAgents, agent):
-        self.semiAgents = semiAgents
-        self.agent = agent
+class ConditionalChoose(Agent):
+    def __init__(self, choose, condition=lambda decision, state, move: False):
+        self.choose = choose
+        self.condition = condition
 
     def policy(self, decision, state):
-        for semiAgent in self.semiAgents:
-            value = semiAgent.policy(decision, state)
-            if value is not None:
-                return value
-
-        return self.agent.policy(decision, state)
-
-
-class BigMoneySemiAgent(Agent):
-    def policy(self, decision, state):
-        for stringDesired in ["Buy: Province", "Buy: Gold", "Buy: Silver"]:
+        for desired in self.choose:
             for idx in range(0, len(decision.moves)):
                 try:
                     move = decision.moves[idx]
                 except:
                     break
 
-                if stringDesired in move.__str__():
+                if desired in str(move) and self.condition(decision, state, move):
                     return [idx]
 
 
-class SmithySemiAgent(Agent):
+class AlwaysChooseOld(Agent):
+    def __init__(self, always):
+        self.always = always
+
     def policy(self, decision, state):
-        for stringDesired in ["Play: Smithy"]:
+        for desired in self.always:
             for idx in range(0, len(decision.moves)):
                 try:
                     move = decision.moves[idx]
                 except:
                     break
 
-                if stringDesired in move.__str__():
+                if desired in str(move):
                     return [idx]
 
-        for idx in range(0, len(decision.moves)):
-            try:
-                move = decision.moves[idx]
-            except:
-                break
 
-            if "Buy: Smithy" in move.__str__() and (
-                    sum(1 for c in decision.player.all_cards if 'Smithy' in str(c)) / len(
-                decision.player.all_cards) < 0.1):
-                return [idx]
+class AlwaysChoose(Agent):
+    def __init__(self, always):
+        self = ConditionalChoose(always, lambda decision, state, move: True)
 
 
-class DontBuyCopperOrEstateSemiAgent(Agent):
+big_money = AlwaysChoose(["Buy: Gold", "Buy: Silver"])
+
+
+class NeverChoose(Agent):
+    def __init__(self, never):
+        self.never = never
 
     def policy(self, decision, state):
         for idx in range(0, len(decision.moves)):
@@ -241,8 +201,12 @@ class DontBuyCopperOrEstateSemiAgent(Agent):
             except:
                 break
 
-            if 'Buy: Copper' in str(move) or 'Buy: Estate' in str(move):
-                decision.moves.pop(idx)
+            for never in self.never:
+                if never in str(move):
+                    decision.moves.pop(idx)
+
+
+never_buy_copper_or_estate = NeverChoose(["Buy: Copper", "Buy: Estate"])
 
 
 class MyHeuristicSemiAgent(Agent):
@@ -254,7 +218,7 @@ class MyHeuristicSemiAgent(Agent):
                 except:
                     break
 
-                if stringDesired in move.__str__():
+                if stringDesired in str(move):
                     return [idx]
 
         if 'Action' in decision.prompt:
@@ -287,172 +251,61 @@ class MyHeuristicSemiAgent(Agent):
                     return [idx]
 
 
-class MarketSemiAgent(Agent):
+class BuyToHaveProportion(Agent):
+    def __init__(self, proportions_desired):
+        self.proportions_desired = proportions_desired
+
     def policy(self, decision, state):
-
-        if 'Action' in decision.prompt:
-            for stringDesired in ['Empty']:
-                for idx in range(0, len(decision.moves)):
-                    try:
-                        move = decision.moves[idx]
-                    except:
-                        break
-
-                    if 'Militia' in str(move):
-                        return [idx]
-
-                    if 'Smithy' in str(move) and decision.player.actions > 1:
-                        return [idx]
-
-                    if stringDesired in str(move):
-                        return [idx]
-
-        if 'Buy' not in decision.prompt and 'Choose a pile to gain card from.' not in decision.prompt:
-            return
-
-        desired_deck = {'Market': 1, 'Militia': 0.001, 'Smithy': 0.001, 'Village': 0.2}
-
-        for wish in desired_deck:
+        """
+        if decision.player.phase == TurnPhase.ACTION_PHASE:
             for idx in range(0, len(decision.moves)):
                 try:
                     move = decision.moves[idx]
                 except:
                     break
 
-                if wish in str(move):
-                    if sum(1 for c in decision.player.all_cards if wish in str(c)) / len(
-                            decision.player.all_cards) < desired_deck[wish]:
-                        return [idx]
-
-
-class CustomHeuristicsSemiAgent(Agent):
-    def __init__(self, desired_decks):
-        self.desired_deck = desired_decks
-
-    def policy(self, decision, state):
-
-        if 'Action' in decision.prompt:
-            for stringDesired in ['Empty']:
-                for idx in range(0, len(decision.moves)):
-                    try:
-                        move = decision.moves[idx]
-                    except:
-                        break
-
-                    if 'Militia' in str(move):
-                        return [idx]
-
-                    if 'Smithy' in str(move) and decision.player.actions > 1:
-                        return [idx]
-
-                    if stringDesired in str(move):
-                        return [idx]
-
-        if 'Buy' not in decision.prompt and 'Choose a pile to gain card from.' not in decision.prompt:
-            return
-
-        for wish in self.desired_deck:
-            for idx in range(0, len(decision.moves)):
-                try:
-                    move = decision.moves[idx]
-                except:
-                    break
-
-                if wish in str(move):
-                    if sum(1 for c in decision.player.all_cards if wish in str(c)) / len(
-                            decision.player.all_cards) < self.desired_deck[wish]:
-                        return [idx]
-
-
-class MarketNoSmithySemiAgent(Agent):
-    def policy(self, decision, state):
-
-        if 'Action' in decision.prompt:
-            for stringDesired in ['Empty']:
-                for idx in range(0, len(decision.moves)):
-                    try:
-                        move = decision.moves[idx]
-                    except:
-                        break
-
-                    if 'Militia' in str(move):
-                        return [idx]
-
-                    if 'Smithy' in str(move) and decision.player.actions > 1:
-                        return [idx]
-
-                    if stringDesired in str(move):
-                        return [idx]
-
-        if 'Buy' not in decision.prompt and 'Choose a pile to gain card from.' not in decision.prompt:
-            return
-
-        desired_deck = {'Market': 1, 'Militia': 0.1, 'Village': 0.2}
-
-        for wish in desired_deck:
-            for idx in range(0, len(decision.moves)):
-                try:
-                    move = decision.moves[idx]
-                except:
-                    break
-
-                if wish in str(move):
-                    if sum(1 for c in decision.player.all_cards if wish in str(c)) / len(
-                            decision.player.all_cards) < desired_deck[wish]:
-                        return [idx]
-
-
-class MarketNoSmithySemiAgent2(Agent):
-    def policy(self, decision, state):
-
-        if 'Action' in decision.prompt:
-            for stringDesired in ['Empty']:
-                for idx in range(0, len(decision.moves)):
-                    try:
-                        move = decision.moves[idx]
-                    except:
-                        break
-
-                    if 'Militia' in str(move):
-                        return [idx]
-
-                    if 'Smithy' in str(move) and decision.player.actions > 1:
-                        return [idx]
-
-                    if stringDesired in str(move):
-                        return [idx]
-
-        if 'Buy' not in decision.prompt and 'Choose a pile to gain card from.' not in decision.prompt:
-            return
-
-        desired_deck = {'Market': 1, 'Militia': 0.2, 'Village': 0.2}
-
-        for wish in desired_deck:
-            for idx in range(0, len(decision.moves)):
-                try:
-                    move = decision.moves[idx]
-                except:
-                    break
-
-                if wish in str(move):
-                    if sum(1 for c in decision.player.all_cards if wish in str(c)) / len(
-                            decision.player.all_cards) < desired_deck[wish]:
-                        return [idx]
-
-
-class OnlyBuyCopperIfSemiAgent(Agent):
-    def policy(self, decision, state):
-        for idx in range(0, len(decision.moves)):
-            try:
-                move = decision.moves[idx]
-            except:
-                break
-
-            if "Buy: Copper" in str(move):
-                if sum(c.coins for c in decision.player.all_cards) < 5:
+                if 'Militia' in str(move):
                     return [idx]
-                else:
-                    decision.moves.pop(idx)
+
+                if 'Smithy' in str(move) and decision.player.actions > 1:
+                    return [idx]
+        """
+
+        if decision.player.phase != TurnPhase.BUY_PHASE and 'Choose a pile to gain card from.' not in decision.prompt:
+            return
+
+        for wish in self.proportions_desired:
+            for idx in range(0, len(decision.moves)):
+                try:
+                    move = decision.moves[idx]
+                except:
+                    break
+
+                if wish in str(move):
+                    if sum(1 for c in decision.player.all_cards if wish in str(c)) / len(
+                            decision.player.all_cards) < self.proportions_desired[wish]:
+                        return [idx]
+
+
+SmithySemiAgent = DecisionLayersAgent([AlwaysChoose(["Play: Smithy"]), BuyToHaveProportion([{"Smithy": 0.1}])])
+
+
+MarketNoSmithySemiAgent = DecisionLayersAgent([ConditionalChoose(["Play: Smithy"], lambda decision, state, move: decision.player.actions > 1),
+                                               AlwaysChoose(["Play: Militia"]),
+                                               BuyToHaveProportion({'Market': 1, 'Militia': 0.1, 'Village': 0.2})])
+
+
+MarketNoSmithySemiAgent2 = DecisionLayersAgent([ConditionalChoose(["Play: Smithy"], lambda decision, state, move: decision.player.actions > 1),
+                                               AlwaysChoose(["Play: Militia"]),
+                                               BuyToHaveProportion({'Market': 1, 'Militia': 0.2, 'Village': 0.2})])
+
+
+MarketNoSmithySemiAgent2 = DecisionLayersAgent([ConditionalChoose(["Play: Smithy"], lambda decision, state, move: decision.player.actions > 1),
+                                               AlwaysChoose(["Play: Militia"]),
+                                               BuyToHaveProportion({'Market': 1, 'Militia': 0.001, 'Smithy': 0.001, 'Village': 0.2})])
+
+
+OnlyBuyCopperIfSemiAgent = ConditionalChoose(["Buy: Silver", "Buy: Copper"], lambda decision, state, move: decision.player.coins_in_all_cards() < 5)
 
 
 class ChapelSemiAgent(Agent):
@@ -557,33 +410,14 @@ class AggressiveChapelSemiAgent(ChapelSemiAgent):
                 return [idx]
 
 
-class ProvinceSemiAgent(Agent):
-    def policy(self, decision, state):
-        for stringDesired in ["Buy: Province"]:
-            for idx in range(0, len(decision.moves)):
-                try:
-                    move = decision.moves[idx]
-                except:
-                    break
-
-                if stringDesired in move.__str__():
-                    return [idx]
+Province = AlwaysChoose(["Buy: Province"])
 
 
-class ProvinceNeverLoseSemiAgent(Agent):
-    def policy(self, decision, state):
-        desired_strings = ["Buy: Province"]
-        if (state.supply_piles['Province'].qty == 1 and
+BuyDuchyIfTakingLastProvinceLoses = ConditionalChoose(["Buy: Duchy"], lambda decision, state, move:
+                (state.supply_piles['Province'].qty == 1 and
                 (6 + decision.player.total_vp() <
-                 max(state.other_players, key=lambda pr: pr.total_vp()).total_vp())):
-            desired_strings = ["Buy: Duchy"]
+                max(state.other_players, key=lambda pr: pr.total_vp).total_vp)))
 
-        for stringDesired in desired_strings:
-            for idx in range(0, len(decision.moves)):
-                try:
-                    move = decision.moves[idx]
-                except:
-                    break
 
-                if stringDesired in str(move):
-                    return [idx]
+BuyDuchyIfThreeProvincesLeft = ConditionalChoose(["Buy: Duchy"], lambda decision, state, move:
+                (state.supply_piles['Province'].qty <= 3))

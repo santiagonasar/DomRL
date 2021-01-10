@@ -71,6 +71,10 @@ class Player(object):
                 total += card.vp_fn(self.all_cards)
         return total
 
+    #  Not visible for other players
+    def coins_in_all_cards(self):
+        return sum(c.coins for c in self.all_cards)
+
 
 class GameState(object):
     """
