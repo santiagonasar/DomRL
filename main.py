@@ -13,49 +13,49 @@ Run instances of the game.
 if __name__ == '__main__':
     player_agent = DecisionLayersAgent([Autoplay(), NeverChoose(["Buy: Curse"]), PlayAllTreasure()], StdinAgent())
     auto_player_agent = DecisionLayersAgent([Autoplay(), NeverChoose(["Buy: Curse"]), PlayAllTreasure(), never_buy_copper_or_estate,
-                                             ProvinceNeverLoseSemiAgent()], StdinAgent())
+                                             BuyDuchyIfTakingLastProvinceLoses, BuyProvince], StdinAgent())
     auto_player_chapel_agent = DecisionLayersAgent([Autoplay(), NeverChoose(["Buy: Curse"]), PlayAllTreasure(), never_buy_copper_or_estate,
-                                                    ProvinceNeverLoseSemiAgent(), AggressiveChapelSemiAgent()], StdinAgent())
+                                                    BuyDuchyIfTakingLastProvinceLoses, BuyProvince, AggressiveChapelSemiAgent()], StdinAgent())
     market_no_buys = DecisionLayersAgent(
-        [Autoplay(), NeverChoose(["Buy: Curse"]), PlayAllTreasure(), never_buy_copper_or_estate, ProvinceNeverLoseSemiAgent(),
-         AggressiveChapelSemiAgent(), MarketSemiAgent(), PassOnBuySemiAgent()], OldRandomAgent())
+        [Autoplay(), NeverChoose(["Buy: Curse"]), PlayAllTreasure(), never_buy_copper_or_estate, BuyDuchyIfTakingLastProvinceLoses, BuyProvince,
+         AggressiveChapelSemiAgent(), MarketSemiAgent, PassOnBuySemiAgent()], OldRandomAgent())
     my_heuristics_no_buy = DecisionLayersAgent(
-        [Autoplay(), NeverChoose(["Buy: Curse"]), PlayAllTreasure(), never_buy_copper_or_estate, ProvinceNeverLoseSemiAgent(),
+        [Autoplay(), NeverChoose(["Buy: Curse"]), PlayAllTreasure(), never_buy_copper_or_estate, BuyDuchyIfTakingLastProvinceLoses, BuyProvince,
          AggressiveChapelSemiAgent(), MyHeuristicSemiAgent(), PassOnBuySemiAgent()], OldRandomAgent())
     my_heuristics_big_money = DecisionLayersAgent(
-        [Autoplay(), NeverChoose(["Buy: Curse"]), PlayAllTreasure(), never_buy_copper_or_estate, ProvinceNeverLoseSemiAgent(),
+        [Autoplay(), NeverChoose(["Buy: Curse"]), PlayAllTreasure(), never_buy_copper_or_estate, BuyDuchyIfTakingLastProvinceLoses, BuyProvince,
          AggressiveChapelSemiAgent(), MyHeuristicSemiAgent(), big_money], OldRandomAgent())
     my_heuristics = DecisionLayersAgent(
-        [Autoplay(), NeverChoose(["Buy: Curse"]), PlayAllTreasure(), never_buy_copper_or_estate, ProvinceNeverLoseSemiAgent(),
+        [Autoplay(), NeverChoose(["Buy: Curse"]), PlayAllTreasure(), never_buy_copper_or_estate, BuyDuchyIfTakingLastProvinceLoses, BuyProvince,
          AggressiveChapelSemiAgent(), MyHeuristicSemiAgent()], OldRandomAgent())
     market_big_money = DecisionLayersAgent(
-        [Autoplay(), NeverChoose(["Buy: Curse"]), PlayAllTreasure(), never_buy_copper_or_estate, ProvinceNeverLoseSemiAgent(),
-         AggressiveChapelSemiAgent(), MarketSemiAgent(), big_money], OldRandomAgent())
+        [Autoplay(), NeverChoose(["Buy: Curse"]), PlayAllTreasure(), never_buy_copper_or_estate, BuyDuchyIfTakingLastProvinceLoses, BuyProvince,
+         AggressiveChapelSemiAgent(), MarketSemiAgent, big_money], OldRandomAgent())
     market = DecisionLayersAgent(
-        [Autoplay(), NeverChoose(["Buy: Curse"]), PlayAllTreasure(), never_buy_copper_or_estate, ProvinceNeverLoseSemiAgent(),
-         AggressiveChapelSemiAgent(), MarketSemiAgent()], OldRandomAgent())
+        [Autoplay(), NeverChoose(["Buy: Curse"]), PlayAllTreasure(), never_buy_copper_or_estate, BuyDuchyIfTakingLastProvinceLoses, BuyProvince,
+         AggressiveChapelSemiAgent(), MarketSemiAgent], OldRandomAgent())
     market_no_smithy = DecisionLayersAgent(
-        [Autoplay(), NeverChoose(["Buy: Curse"]), PlayAllTreasure(), never_buy_copper_or_estate, ProvinceNeverLoseSemiAgent(),
-         AggressiveChapelSemiAgent(), MarketNoSmithySemiAgent(), PassOnBuySemiAgent()], OldRandomAgent())
+        [Autoplay(), NeverChoose(["Buy: Curse"]), PlayAllTreasure(), never_buy_copper_or_estate, BuyDuchyIfTakingLastProvinceLoses, BuyProvince,
+         AggressiveChapelSemiAgent(), MarketNoSmithySemiAgent, PassOnBuySemiAgent()], OldRandomAgent())
     market_no_smithy2 = DecisionLayersAgent(
-        [Autoplay(), NeverChoose(["Buy: Curse"]), PlayAllTreasure(), never_buy_copper_or_estate, ProvinceNeverLoseSemiAgent(),
-         AggressiveChapelSemiAgent(), MarketNoSmithySemiAgent2(), PassOnBuySemiAgent()], OldRandomAgent())
+        [Autoplay(), NeverChoose(["Buy: Curse"]), PlayAllTreasure(), never_buy_copper_or_estate, BuyDuchyIfTakingLastProvinceLoses, BuyProvince,
+         AggressiveChapelSemiAgent(), MarketNoSmithySemiAgent2, PassOnBuySemiAgent()], OldRandomAgent())
     market_player = DecisionLayersAgent(
-        [Autoplay(), NeverChoose(["Buy: Curse"]), PlayAllTreasure(), never_buy_copper_or_estate, ProvinceNeverLoseSemiAgent(),
-         AggressiveChapelSemiAgent(), MarketSemiAgent()], StdinAgent())
+        [Autoplay(), NeverChoose(["Buy: Curse"]), PlayAllTreasure(), never_buy_copper_or_estate, BuyDuchyIfTakingLastProvinceLoses, BuyProvince,
+         AggressiveChapelSemiAgent(), MarketSemiAgent], StdinAgent())
     smithy_agent = DecisionLayersAgent(
-        [Autoplay(), NeverChoose(["Buy: Curse"]), PlayAllTreasure(), never_buy_copper_or_estate, ProvinceNeverLoseSemiAgent(), SmithySemiAgent(),
+        [Autoplay(), NeverChoose(["Buy: Curse"]), PlayAllTreasure(), never_buy_copper_or_estate, BuyDuchyIfTakingLastProvinceLoses, BuyProvince, SmithySemiAgent,
          big_money], OldRandomAgent())
     # agent1 = ApplySemiAgent([RulesSemiAgent(), CleverSemiAgent(), DontBuyCopperOrEstateSemiAgent(), ProvinceNeverLoseSemiAgent(), SmithySemiAgent(), BigMoneySemiAgent()], RandomAgent())
     # agent2 = ApplySemiAgent([RulesSemiAgent(), CleverSemiAgent(), DontBuyCopperOrEstateSemiAgent(), ProvinceNeverLoseSemiAgent(), BigMoneySemiAgent()], RandomAgent())
     agents = [market, market_no_buys, market_big_money, my_heuristics, my_heuristics_no_buy, my_heuristics_big_money]
     agents = [market_no_smithy2]
     agents = [DecisionLayersAgent(
-        [Autoplay(), NeverChoose(["Buy: Curse"]), PlayAllTreasure(), never_buy_copper_or_estate, ProvinceNeverLoseSemiAgent(), SmithySemiAgent(),
+        [Autoplay(), NeverChoose(["Buy: Curse"]), PlayAllTreasure(), never_buy_copper_or_estate, BuyDuchyIfTakingLastProvinceLoses, BuyProvince, SmithySemiAgent,
          BuyToHaveProportion({'Market': 1, 'Militia': 0.001, 'Smithy': 0.001, 'Village': 0.2}), PassOnBuySemiAgent()], OldRandomAgent())]
     #opponent = market_no_smithy
     #opponent = auto_player_agent
-    agents = [DecisionLayersAgent([Autoplay()], Random())]
+    agents = [DecisionLayersAgent([Autoplay(), big_money], Random())]
     opponent = BigMoneyAgent()
     teksts = []
     for agent in agents:
@@ -63,7 +63,7 @@ if __name__ == '__main__':
         p2vs = 0
         draws = 0
         fails = 0
-        rounds = 100
+        rounds = 10
         for idx in range(0, rounds):
             print(f"Starting round {idx}.")
             if idx < rounds / 2:
