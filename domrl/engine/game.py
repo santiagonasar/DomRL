@@ -1,10 +1,12 @@
 import domrl.engine.state as st
 from .decision import *
 from .util import TurnPhase
+from domrl.engine.cards.base import BaseKingdom
 from .state_view import StateView
 
 class Game(object):
-    def __init__(self, agents, players=None, kingdoms=None, verbose=True):
+
+    def __init__(self, agents, players=None, kingdoms=[BaseKingdom], verbose=True):
         self.state = st.GameState(agents, players=players, kingdoms=kingdoms, verbose=verbose)
         self.agents = agents
 
