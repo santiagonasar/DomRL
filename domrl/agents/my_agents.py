@@ -123,22 +123,6 @@ class ConditionalChoose(Agent):
                     return [idx]
 
 
-class AlwaysChooseOld(Agent):
-    def __init__(self, always):
-        self.always = always
-
-    def policy(self, decision, state):
-        for desired in self.always:
-            for idx in range(0, len(decision.moves)):
-                try:
-                    move = decision.moves[idx]
-                except:
-                    break
-
-                if desired in str(move):
-                    return [idx]
-
-
 def AlwaysChoose(always):
     return ConditionalChoose(always, lambda decision, state: True)
 
