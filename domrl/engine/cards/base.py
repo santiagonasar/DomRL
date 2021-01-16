@@ -1,5 +1,6 @@
 from ..state_funcs import *
 from ..card import *
+from ..util import *
 
 import domrl.engine.supply as supply
 import domrl.engine.decision as dec
@@ -89,7 +90,7 @@ class DiscardDownToEffect(effect.Effect):
 
     def run(self, state, player):
         prompt = f"Discard down to {self.num_cards_downto} cards."
-        num_to_discard = len(player.hand) - self.num_cards_downto
+        num_to_discard = max(len(player.hand) - self.num_cards_downto, 0)
 
         cards = dec.choose_cards(
             state=state,
@@ -98,6 +99,7 @@ class DiscardDownToEffect(effect.Effect):
             prompt=prompt,
             filter_func=None,
             optional=False,
+            type=ChoiceType.DISCARD,
         )
 
         for card in cards:
@@ -271,37 +273,21 @@ def bandit_attack_fn(state, player):
             continue
 
         top_two_cards = draw(state, opp, 2, draw_event=False)
+        filter_func = lambda c: c.is_type(CardType.TREASURE) and c != Copper
 
-        treasures = []
-        non_treasures = []
-        for card in top_two_cards:
-            if card.is_type(CardType.TREASURE) and card.name != "Copper":
-                treasures.append(card)
-            else:
-                non_treasures.append(card)
+        cards = dec.choose_cards(
+            state=state,
+            player=opp,
+            num_select=1,
+            prompt="Select a card to trash from enemy Bandit.",
+            filter_func=filter_func,
+            optional=False,
+            card_container=top_two_cards,
+            choice_type=ChoiceType.TRASH,
+        )
 
-        # If there are two treasures:
-        if len(treasures) == 2:
-            cards = dec.choose_cards(
-                state=state,
-                player=opp,
-                num_select=1,
-                prompt="Select a card to trash from enemy Bandit.",
-                filter_func=None,
-                optional=False,
-                card_container=treasures,
-            )
-
-            trash(state, opp, cards[0], treasures)
-            discard(state, opp, treasures[0], treasures)
-            assert (len(treasures) == 0)
-
-        elif len(treasures) == 1:
-            trash(state, player, treasures[0], treasures)
-            assert (len(treasures) == 0)
-
-        for card in non_treasures.copy():
-            discard(state, opp, card, non_treasures)
+        for card in cards:
+            trash(state, opp, card, top_two_cards)
 
 
 Bandit = Card(
@@ -324,6 +310,7 @@ def throne_fn(state, player):
         filter_func=lambda _card: _card.is_type(CardType.ACTION),
         optional=True,
         card_container=player.hand,
+        type=ChoiceType.THRONE
     )
 
     if cards:
@@ -400,13 +387,14 @@ Moneylender = Card(
 
 def poacher_fn(state, player):
     pileout_count = len(state.empty_piles())
+    cards_to_discard = min(pileout_count, len(player.hand) - 1)
     if pileout_count > 0:
         cards = dec.choose_cards(
             state,
             player,
-            num_select=2,
-            prompt=f"You must discard {pileout_count} card(s).",
-            filter_func=lambda card: card.name == "Copper",
+            num_select=cards_to_discard,
+            prompt=f"You must discard {cards_to_discard} card(s).",
+            #filter_func=lambda card: card.name == "Copper", #  What is this?
             optional=False,
             card_container=player.hand,
         )
@@ -658,7 +646,7 @@ def library_fn(state, player):
                                          prompt=f"Library draws {cards[0]}, keep?",
                                          yes_prompt="Put into hand.",
                                          no_prompt="Discard.")
-                print(ans)
+                #print(ans)
                 if not ans:
                     keep = False
 

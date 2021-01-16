@@ -56,12 +56,18 @@ class Decision(object):
             player,
             num_select=1,
             optional=False,
-            prompt="Unimplemented decision prompt"):
+            prompt="Unimplemented decision prompt",
+            choice_type=None,
+            opponent=None):
         self.moves = moves
         self.player = player
         self.num_select = num_select
-        self.optional = optional
+        self.optional = optional  # todo handle choosing 'at least x'
         self.prompt = prompt
+        self.choice_type = choice_type
+        self.opponent = opponent
+        if len(moves) < num_select:  #  eg if we have to choose precisely two cards from 1.
+            self.optional = True
 
 
 class ActionPhaseDecision(Decision):
@@ -78,7 +84,7 @@ class ActionPhaseDecision(Decision):
                 if card.is_type(CardType.ACTION):
                     moves.append(PlayCard(card))
 
-        super().__init__(moves, player, prompt="Action Phase, choose card to play.")
+        super().__init__(moves, player, prompt="Action Phase, choose card to play.", choice_type=ChoiceType.ACTION)
 
 
 class TreasurePhaseDecision(Decision):
@@ -91,7 +97,7 @@ class TreasurePhaseDecision(Decision):
             if card.is_type(CardType.TREASURE):
                 moves.append(PlayCard(card))
 
-        super().__init__(moves, player, prompt="Treasure Phase, choose card to play.")
+        super().__init__(moves, player, prompt="Treasure Phase, choose card to play.", choice_type=ChoiceType.TREASURE)
 
 
 class BuyPhaseDecision(Decision):
@@ -106,7 +112,7 @@ class BuyPhaseDecision(Decision):
                     and player.buys > 0):
                 moves.append(BuyCard(card_name))
 
-        super().__init__(moves, player, prompt="Buy Phase, choose card to buy.")
+        super().__init__(moves, player, prompt="Buy Phase, choose card to buy.", choice_type=ChoiceType.BUY)
 
 
 class EndPhaseDecision(Decision):
@@ -114,7 +120,7 @@ class EndPhaseDecision(Decision):
     def __init__(self, player):
         moves = [EndTurn()]
 
-        super().__init__(moves, player, prompt="End Turn")
+        super().__init__(moves, player, prompt="End Turn", choice_type=ChoiceType.END_TURN)
 
 
 class ChooseCardsDecision(Decision):
@@ -127,7 +133,9 @@ class ChooseCardsDecision(Decision):
                  prompt,
                  filter_func=None,
                  optional=True,
-                 card_container=None):
+                 card_container=None,
+                 choice_type=None,
+                 opponent=None):
 
         self.cards = []
         moves = []
@@ -145,7 +153,9 @@ class ChooseCardsDecision(Decision):
             player,
             num_select=num_select,
             optional=optional,
-            prompt=prompt
+            prompt=prompt,
+            choice_type=choice_type,
+            opponent=opponent
         )
 
     class ChooseCard(Move):
@@ -164,7 +174,8 @@ class ChooseCardsDecision(Decision):
             self.decision.cards.append(self.card)
 
 
-def choose_cards(state, player, num_select, prompt, filter_func=None, optional=True, card_container=None):
+def choose_cards(state, player, num_select, prompt, filter_func=None, optional=True, card_container=None,
+                 choice_type=None, opponent=None):
     """
     Call this when you need to prompt a player to choose a card.
     """
@@ -180,6 +191,8 @@ def choose_cards(state, player, num_select, prompt, filter_func=None, optional=T
         filter_func=filter_func,
         optional=optional,
         card_container=card_container,
+        choice_type=choice_type,
+        opponent=opponent,
     )
     process_decision(player.agent, decision, state)
     return decision.cards
@@ -192,7 +205,7 @@ class ChoosePileDecision(Decision):
     TODO(benzyx): maybe one day you need to select multiple piles?
     """
 
-    def __init__(self, state, player, filter_func, prompt):
+    def __init__(self, state, player, filter_func, prompt, choice_type=None):
         moves = []
         for card_name, pile in state.supply_piles.items():
             if filter_func is None or filter_func(pile):
@@ -200,7 +213,7 @@ class ChoosePileDecision(Decision):
 
         self.pile = None
 
-        super().__init__(moves, player, prompt=prompt)
+        super().__init__(moves, player, prompt=prompt, choice_type=choice_type)
 
     class ChoosePile(Move):
         """
@@ -220,7 +233,7 @@ class ChoosePileDecision(Decision):
 
 def boolean_choice(state, player, prompt, yes_prompt="Yes", no_prompt="No"):
     decision = BooleanDecision(state, player, prompt, yes_prompt, no_prompt)
-    game.process_decision(player.agent, decision, state)
+    process_decision(player.agent, decision, state) #  there was game. but this couldn't work
     return decision.value
 
 

@@ -81,11 +81,14 @@ class PassOnBuySemiAgent(Agent):
 
 class Autoplay(Agent):
     def policy(self, decision, state):
+        if decision.num_select > len(decision.moves) and not decision.optional:
+            raise Exception("Cannot handle this decision, require more moves than possible.")
+
+        if decision.num_select == 0:
+            return []
+
         if len(decision.moves) == 1:
             return [0]
-
-        if len(decision.moves) == 0:
-            return []
 
 
 class PlayAllTreasure(Agent):
@@ -142,53 +145,11 @@ class NeverChoose(Agent):
                 break
 
             for never in self.never:
-                if never in str(move):
+                if never in str(move) and (not decision.optional or len(decision.moves) > decision.num_select): #  in case we'd be left with less moves than we need to do
                     decision.moves.pop(idx)
 
 
 never_buy_copper_or_estate = NeverChoose(["Buy: Copper", "Buy: Estate"])
-
-
-class MyHeuristicSemiAgent(Agent):
-    def policy(self, decision, state):
-        for stringDesired in []:
-            for idx in range(0, len(decision.moves)):
-                try:
-                    move = decision.moves[idx]
-                except:
-                    break
-
-                if stringDesired in str(move):
-                    return [idx]
-
-        if 'Action' in decision.prompt:
-            for idx in range(0, len(decision.moves)):
-                try:
-                    move = decision.moves[idx]
-                except:
-                    break
-
-                if 'Militia' in str(move) or 'Smithy' in str(move):
-                    return [idx]
-
-        if 'Buy' not in decision.prompt and 'Choose a pile to gain card from.' not in decision.prompt:
-            return
-
-        desired_deck = {'Festival': 1, 'Market': 1, 'Militia': 1, 'Smithy': 0.1, 'Village': 0.2}
-        if numpy.random.randint(0, 2, 1, int) == 1:
-            desired_deck = {'Market': 1, 'Festival': 1, 'Smithy': 0.1, 'Militia': 1, 'Village': 0.2}
-
-        for wish in desired_deck:
-            for idx in range(0, len(decision.moves)):
-                try:
-                    move = decision.moves[idx]
-                except:
-                    break
-
-                if wish in str(move) and (
-                        sum(1 for c in decision.player.all_cards if wish in str(c)) / len(
-                        decision.player.all_cards) < desired_deck[wish]):
-                    return [idx]
 
 
 class BuyToHaveProportion(Agent):
@@ -213,7 +174,13 @@ class BuyToHaveProportion(Agent):
                         return [idx]
 
 
-SmithySemiAgent = DecisionLayersAgent([AlwaysChoose(["Play: Smithy"]), BuyToHaveProportion([{"Smithy": 0.1}])])
+MyHeuristic = DecisionLayersAgent([AlwaysChoose(["Play: Militia", "Play: Smithy"]),
+                                   BuyToHaveProportion(({'Festival': 1, 'Market': 1})),
+                                   BuyToHaveProportion(({'Militia': 1, 'Smithy': 0.1})),
+                                   BuyToHaveProportion(({'Village': 0.2}))])  #  Want to chose any possible order on random
+
+
+SmithySemiAgent = DecisionLayersAgent([AlwaysChoose(["Play: Smithy"]), BuyToHaveProportion({"Smithy": 0.1})])
 
 
 MarketNoSmithySemiAgent = DecisionLayersAgent([ConditionalChoose(["Play: Smithy"], lambda decision, state: decision.player.actions > 1),
@@ -231,7 +198,7 @@ MarketSemiAgent = DecisionLayersAgent([ConditionalChoose(["Play: Smithy"], lambd
                                        BuyToHaveProportion({'Market': 1, 'Militia': 0.001, 'Smithy': 0.001, 'Village': 0.2})])
 
 
-OnlyBuyCopperIfSemiAgent = ConditionalChoose(["Buy: Silver", "Buy: Copper"], lambda decision, state: decision.player.coins_in_all_cards() < 5)
+BuyCopperIfLessThanFiveGold = ConditionalChoose(["Buy: Silver", "Buy: Copper"], lambda decision, state: decision.player.coins_in_all_cards() < 5)
 
 
 class ChapelSemiAgent(Agent):
@@ -289,7 +256,7 @@ class AggressiveChapelSemiAgent(ChapelSemiAgent):
     def policy(self, decision, state):
         if 'Action' in decision.prompt:
             for c in decision.player.hand:
-                if 'Estate' in str(c) or ('Copper' in str(c) and sum(c.coins for c in decision.player.all_cards) > 5):
+                if 'Estate' in str(c) or ('Copper' in str(c) and decision.player.coins_in_all_cards() > 5):
                     for idx in range(0, len(decision.moves)):
                         if 'Play: Chapel' in str(decision.moves[idx]):
                             return [idx]
@@ -297,7 +264,7 @@ class AggressiveChapelSemiAgent(ChapelSemiAgent):
         if 'Trash' in decision.prompt:
             moves = []
             for idx in range(0, len(decision.moves)):
-                if len(moves) >= 4:
+                if len(moves) >= decision.num_select:
                     break
                 try:
                     move = decision.moves[idx]
@@ -308,7 +275,7 @@ class AggressiveChapelSemiAgent(ChapelSemiAgent):
                     moves.append(idx)
 
             for idx in range(0, len(decision.moves)):
-                if len(moves) >= 4:
+                if len(moves) >= decision.num_select:
                     break
                 try:
                     move = decision.moves[idx]
@@ -316,7 +283,7 @@ class AggressiveChapelSemiAgent(ChapelSemiAgent):
                     break
 
                 if "Choose: Copper" in str(move) and (
-                        sum(c.coins for c in decision.player.all_cards) -
+                        decision.player.coins_in_all_cards() -
                         sum(1 for planned_move in moves if 'Copper' in str(decision.moves[planned_move])) > 5):
                     moves.append(idx)
 
@@ -337,6 +304,9 @@ class AggressiveChapelSemiAgent(ChapelSemiAgent):
 
 
 BuyProvince = AlwaysChoose(["Buy: Province"])
+
+
+DefendWithMoat = ConditionalChoose(["Yes"], lambda decision, state: decision.prompt == "Reveal Moat to defend attack?")
 
 
 BuyDuchyIfTakingLastProvinceLoses = ConditionalChoose(["Buy: Duchy"], lambda decision, state:

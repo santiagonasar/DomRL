@@ -1,5 +1,6 @@
 from enum import Enum
 
+
 class CardType(Enum):
     VICTORY = 1
     TREASURE = 2
@@ -10,8 +11,22 @@ class CardType(Enum):
     DURATION = 7
     NIGHT = 8
 
+
 class TurnPhase(Enum):
     ACTION_PHASE = 1
     TREASURE_PHASE = 2
     BUY_PHASE = 3
     END_PHASE = 4
+
+
+class ChoiceType(Enum):
+    END_TURN = 0
+    ACTION = 1
+    TREASURE = 2
+    BUY = 3
+    DISCARD = 4
+    TRASH = 5
+    GAIN = 6
+    PUT_ON_TOP = 7
+    LIBRARY = 9
+    THRONE = 10

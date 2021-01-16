@@ -53,6 +53,9 @@ class Card(object):
     def is_card(self, card: str) -> bool:
         return card == self.name
 
+    def __eq__(self, other) -> bool:
+        return isinstance(other, Card) and self.name == other.name
+
 
     def play(self, state, player):
         """
