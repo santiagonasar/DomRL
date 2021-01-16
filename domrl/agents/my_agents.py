@@ -2,74 +2,8 @@ import numpy
 import copy
 from domrl.engine.agent import Agent
 from domrl.agents.layer_agent import DecisionLayersAgent
-from domrl.engine.util import TurnPhase, CardType
-
-"""
-class StdinAgent(Agent):
-    def choose(self, decision, state):
-
-        # Autoplay
-        if len(decision.moves) == 1:
-            return [0]
-
-        player = decision.player
-
-        print(f" ==== Decision to be made by {player} ==== ")
-        print(f"Actions: {player.actions} | Buys: {player.buys} | Coins: {player.coins}")
-        print("Hand: ", list(map(str, player.hand)))
-        print(decision.prompt)
-
-        for idx, move in enumerate(decision.moves):
-            print(f"{idx}: {move}")
-
-        # Get user input and process it.
-        while True:
-            user_input = input()
-            if user_input == "?":
-                state.event_log.print(player)
-                print(state)
-            else:
-                try:
-                    ans = list(map(lambda x: int(x.strip()), user_input.split(',')))
-                except:
-                    print('Clearly invalid input. Please try again.')
-                    continue
-
-                break
-        return ans
-"""
-
-
-class OldRandomAgent(Agent):
-
-    def policy(self, decision, state):
-        if 'Trash up to 4' in decision.prompt:  # for chapel
-            my_list = []
-            range_max = numpy.random.randint(0, min(len(decision.moves), 4) + 1, 1, int)
-            for idx in range(0, range_max[0]):
-                new_item = -1
-                while new_item == -1 or new_item in my_list:
-                    new_item = numpy.random.randint(0, len(decision.moves), 1, int)[0]
-                my_list.append(new_item)
-
-            return my_list
-
-        if len(decision.moves) == 0:
-            return []
-
-        if 'Discard down to 3 cards' in decision.prompt:  # for militia
-            my_list = []
-            range_max = max(len(decision.player.hand) - 3, 0)
-            for idx in range(0, range_max):
-                new_item = -1
-                while new_item == -1 or new_item in my_list:
-                    new_item = numpy.random.randint(0, len(decision.moves), 1, int)[0]
-                my_list.append(new_item)
-
-            return my_list
-
-        value = list(numpy.random.randint(0, len(decision.moves), 1, int))
-        return value
+from domrl.engine.util import *
+from domrl.engine.cards.base import *
 
 
 class PassOnBuySemiAgent(Agent):
@@ -82,7 +16,7 @@ class PassOnBuySemiAgent(Agent):
 class Autoplay(Agent):
     def policy(self, decision, state):
         if decision.num_select > len(decision.moves) and not decision.optional:
-            raise Exception("Cannot handle this decision, require more moves than possible.")
+            raise Exception("Cannot handle this decision, require more moves than possible.")  #  this should never be evoked by the change in game code: whenever require more choices than possible, make it optional
 
         if decision.num_select == 0:
             return []
@@ -306,11 +240,17 @@ class AggressiveChapelSemiAgent(ChapelSemiAgent):
 BuyProvince = AlwaysChoose(["Buy: Province"])
 
 
-DefendWithMoat = ConditionalChoose(["Yes"], lambda decision, state: decision.prompt == "Reveal Moat to defend attack?")
+DefendWithMoat = ConditionalChoose(["Yes"], lambda decision, state: decision.card == Moat)
 
 
 BuyDuchyIfTakingLastProvinceLoses = ConditionalChoose(["Buy: Duchy"], lambda decision, state:
                 (state.supply_piles['Province'].qty == 1 and
+                (6 + decision.player.total_vp() <
+                max(state.other_players, key=lambda pr: pr.total_vp).total_vp)))
+
+
+BuyDuchyFirstIfLosingAndTwoProvincesLeft = ConditionalChoose(["Buy: Duchy"], lambda decision, state:
+                (state.supply_piles['Province'].qty <= 2 and
                 (6 + decision.player.total_vp() <
                 max(state.other_players, key=lambda pr: pr.total_vp).total_vp)))
 

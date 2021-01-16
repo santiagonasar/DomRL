@@ -738,4 +738,4 @@ BaseKingdom = {
     "Harbinger": SupplyPile(Harbinger, 10),
     "Library": SupplyPile(Library, 10),
     "Moat": SupplyPile(Moat, 10),
-}
+}.copy()

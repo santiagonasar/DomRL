@@ -62,9 +62,9 @@ if __name__ == '__main__':
         for idx in range(0, rounds):
             print(f"Starting round {idx}.")
             if idx < rounds / 2:
-                game = Game(agents=playing_agents, players=players, verbose=True, kingdoms=[BaseKingdom.copy()])
+                game = Game(agents=playing_agents, players=players, verbose=True, kingdoms=[BaseKingdom])
             else:
-                game = Game(agents=playing_agents_reverse, players=players_reverse, verbose=True, kingdoms=[BaseKingdom.copy()])
+                game = Game(agents=playing_agents_reverse, players=players_reverse, verbose=True, kingdoms=[BaseKingdom])
 
             try:
                 game_state = game.run()
