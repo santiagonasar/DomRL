@@ -58,7 +58,8 @@ class Decision(object):
             optional=False,
             prompt="Unimplemented decision prompt",
             choice_type=None,
-            opponent=None):
+            opponent=None,
+            card=None):
         self.moves = moves
         self.player = player
         self.num_select = num_select
@@ -66,6 +67,7 @@ class Decision(object):
         self.prompt = prompt
         self.choice_type = choice_type
         self.opponent = opponent
+        self.card = card
         if len(moves) < num_select:  #  eg if we have to choose precisely two cards from 1.
             self.optional = True
 
@@ -231,8 +233,8 @@ class ChoosePileDecision(Decision):
             self.decision.pile = self.pile
 
 
-def boolean_choice(state, player, prompt, yes_prompt="Yes", no_prompt="No"):
-    decision = BooleanDecision(state, player, prompt, yes_prompt, no_prompt)
+def boolean_choice(state, player, prompt, yes_prompt="Yes", no_prompt="No",choice_type=ChoiceType.TRASH, card=None, opponent=None):
+    decision = BooleanDecision(state, player, prompt, yes_prompt, no_prompt, choice_type=choice_type, card=card, opponent=opponent)
     process_decision(player.agent, decision, state) #  there was game. but this couldn't work
     return decision.value
 
@@ -244,11 +246,11 @@ class BooleanDecision(Decision):
     TODO(benzyx): maybe one day you need to select multiple piles?
     """
 
-    def __init__(self, state, player, prompt, yes_prompt, no_prompt):
+    def __init__(self, state, player, prompt, yes_prompt, no_prompt, choice_type=None, card=None, opponent=None):
         moves = [self.YesMove(self, yes_prompt), self.NoMove(self, no_prompt)]
         self.value = None
 
-        super().__init__(moves, player, prompt=prompt)
+        super().__init__(moves, player, prompt=prompt, choice_type=choice_type, card=card, opponent=opponent)
 
     class YesMove(Move):
         """

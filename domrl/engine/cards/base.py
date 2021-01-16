@@ -74,6 +74,7 @@ class DiscardCardsEffect(effect.Effect):
             prompt=prompt,
             filter_func=self.filter_func,
             optional=self.optional,
+            choice_type=ChoiceType.DISCARD,
         )
 
         for card in cards:
@@ -99,7 +100,7 @@ class DiscardDownToEffect(effect.Effect):
             prompt=prompt,
             filter_func=None,
             optional=False,
-            type=ChoiceType.DISCARD,
+            choice_type=ChoiceType.DISCARD,
         )
 
         for card in cards:
@@ -124,7 +125,8 @@ class TrashCardsEffect(effect.Effect):
             num_select=self.num_cards,
             prompt=prompt,
             filter_func=self.filter_func,
-            optional=self.optional
+            optional=self.optional,
+            choice_type=ChoiceType.TRASH,
         )
 
         for card in cards:
@@ -147,7 +149,7 @@ class ChoosePileToGainEffect(effect.Effect):
 
     def run(self, state, player):
         prompt = f"Choose a pile to gain card from."
-        decision = dec.ChoosePileDecision(state, player, self.filter_func, prompt)
+        decision = dec.ChoosePileDecision(state, player, self.filter_func, prompt, choice_type=ChoiceType.GAIN)
         game.process_decision(player.agent, decision, state)
         gain_card_to_discard(state, player, decision.pile)
 
@@ -158,7 +160,7 @@ class ChoosePileToGainToHandEffect(effect.Effect):
 
     def run(self, state, player):
         prompt = f"Choose a pile to gain a card into your hand."
-        decision = dec.ChoosePileDecision(state, player, self.filter_func, prompt)
+        decision = dec.ChoosePileDecision(state, player, self.filter_func, prompt, choice_type=ChoiceType.GAIN_TO_HAND)
         game.process_decision(player.agent, decision, state)
         gain_card_to_hand(state, player, decision.pile)
 
@@ -239,21 +241,22 @@ class TrashAndGainEffect(effect.Effect):
             num_select=1,
             prompt=f"Choose a card to trash.",
             filter_func=None,
-            optional=False
+            optional=False,
+            choice_type=ChoiceType.TRASH,
         )
 
-        assert (len(cards) == 1)
-        trashed_card = cards[0]
+        #assert (len(cards) == 1) # no need for this
+        for trashed_card in cards:
 
-        player_trash_card_from_hand(state, player, trashed_card)
+            player_trash_card_from_hand(state, player, trashed_card)
 
-        filter_function = lambda pile: pile.card.cost <= trashed_card.cost + self.add_cost
-        if self.gain_exact_cost:
-            filter_function = lambda pile: pile.card.cost == trashed_card.cost + self.add_cost
+            filter_function = lambda pile: pile.card.cost <= trashed_card.cost + self.add_cost
+            if self.gain_exact_cost:
+                filter_function = lambda pile: pile.card.cost == trashed_card.cost + self.add_cost
 
-        ChoosePileToGainEffect(
-            filter_func=filter_function
-        ).run(state, player)
+            ChoosePileToGainEffect(
+                filter_func=filter_function
+            ).run(state, player)
 
 
 Remodel = Card(
@@ -310,7 +313,7 @@ def throne_fn(state, player):
         filter_func=lambda _card: _card.is_type(CardType.ACTION),
         optional=True,
         card_container=player.hand,
-        type=ChoiceType.THRONE
+        choice_type=ChoiceType.THRONE,
     )
 
     if cards:
@@ -370,6 +373,7 @@ def moneylender_fn(state, player):
         filter_func=lambda card: card.name == "Copper",
         optional=True,
         card_container=player.hand,
+        choice_type=ChoiceType.TRASH,
     )
 
     if cards:
@@ -397,6 +401,7 @@ def poacher_fn(state, player):
             #filter_func=lambda card: card.name == "Copper", #  What is this?
             optional=False,
             card_container=player.hand,
+            choice_type=ChoiceType.DISCARD,
         )
         for card in cards:
             player_discard_card_from_hand(state, player, card)
@@ -422,6 +427,7 @@ def cellar_fn(state, player):
         filter_func=None,
         optional=True,
         card_container=player.hand,
+        choice_type=ChoiceType.DISCARD,
     )
 
     num_discarded = len(chosen_cards)
@@ -448,6 +454,7 @@ def mine_fn(state, player):
         filter_func=lambda card: card.is_type(CardType.TREASURE),
         optional=True,
         card_container=player.hand,
+            choice_type=ChoiceType.TRASH,
     )
 
     if trashed_card:
@@ -512,7 +519,8 @@ def artisan_fn(state, player):
                              num_select=1,
                              prompt="Choose a card to topdeck.",
                              filter_func=None,
-                             optional=False)
+                             optional=False,
+                             choice_type=ChoiceType.TOPDECK)
 
     if cards:
         topdeck(state, player, cards[0], player.hand)
@@ -547,7 +555,8 @@ def bureaucrat_fn(state, player):
                 num_select=1,
                 prompt="Choose a Victory Card to topdeck.",
                 filter_func=lambda card: card.is_type(CardType.VICTORY),
-                optional=False
+                optional=False,
+                choice_type=ChoiceType.TOPDECK
             )
             if topdeck_card:
                 topdeck(state, opp, topdeck_card[0], opp.hand)
@@ -573,7 +582,8 @@ def sentry_fn(state, player):
                                    num_select=len(drawn_cards),
                                    prompt="You may trash cards with Sentry.",
                                    optional=True,
-                                   card_container=drawn_cards)
+                                   card_container=drawn_cards,
+                                   choice_type=ChoiceType.TRASH)
     for card in trash_cards:
         trash(state, player, card, container=drawn_cards)
 
@@ -583,7 +593,8 @@ def sentry_fn(state, player):
                                      num_select=len(drawn_cards),
                                      prompt="You may discard cards with Sentry.",
                                      optional=True,
-                                     card_container=drawn_cards)
+                                     card_container=drawn_cards,
+                                     choice_type=ChoiceType.DISCARD)
     for card in discard_cards:
         discard(state, player, card, container=drawn_cards)
 
@@ -594,7 +605,8 @@ def sentry_fn(state, player):
                                      prompt="You may put cards back in any order with Sentry. Cards are topdecked in "
                                             "order, so the card listed last is placed on top.",
                                      optional=False,
-                                     card_container=drawn_cards)
+                                     card_container=drawn_cards,
+                                     choice_type=ChoiceType.TOPDECK)
     for card in topdeck_cards:
         topdeck(state, player, card, container=drawn_cards)
 
@@ -617,6 +629,7 @@ def harbinger_fn(state, player):
         prompt="You may topdeck a card from your discard pile.",
         optional=True,
         card_container=player.discard_pile,
+        choice_type=ChoiceType.TOPDECK
     )
     if cards:
         topdeck(state, player, cards[0], player.discard_pile)
@@ -645,7 +658,9 @@ def library_fn(state, player):
                                          player,
                                          prompt=f"Library draws {cards[0]}, keep?",
                                          yes_prompt="Put into hand.",
-                                         no_prompt="Discard.")
+                                         no_prompt="Discard.",
+                                         choice_type = ChoiceType.DISCARD
+                )
                 #print(ans)
                 if not ans:
                     keep = False
@@ -678,7 +693,10 @@ class MoatTrigger(trig.Trigger):
             if Moat in opp.hand:
                 result = dec.boolean_choice(state,
                                             opp,
-                                            "Reveal Moat to defend attack?")
+                                            "Reveal Moat to defend attack?",
+                                            choice_type=ChoiceType.REACT,
+                                            card=Moat,
+                                            opponent=state.player)
                 if result:
                     reveal(state, opp, Moat)
                     opp.immune_to_attack = True

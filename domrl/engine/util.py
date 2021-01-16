@@ -27,6 +27,7 @@ class ChoiceType(Enum):
     DISCARD = 4
     TRASH = 5
     GAIN = 6
-    PUT_ON_TOP = 7
+    GAIN_TO_HAND = 7
+    TOPDECK = 8
     LIBRARY = 9
     THRONE = 10
